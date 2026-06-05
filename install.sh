@@ -28,6 +28,22 @@ if [ "${HAS_TOOLS:-0}" -eq 0 ]; then
 fi
 say "✓ ssh + pty tools present in this binary"
 
+# 2b. Stage the nqvm CLI for the operate skill (it is NOT a published release asset yet, so the
+#     agent pushes this bundled binary to target hosts). Best-effort — needs the NQRust-MicroVM
+#     source + cargo; if it can't build, the operate skill builds/pushes on demand instead.
+if [ ! -x "$HERE/skill/nqrust-microvm-operate/bin/nqvm" ]; then
+  say "→ staging nqvm for the operate skill (best-effort)…"
+  if bash "$HERE/skill/nqrust-microvm-operate/scripts/build-nqvm.sh" >/dev/null 2>&1; then
+    say "✓ nqvm staged → skill/nqrust-microvm-operate/bin/nqvm"
+  else
+    say "! nqvm not staged (no source/cargo) — set NQRUST_MICROVM_SRC or run"
+    say "  skill/nqrust-microvm-operate/scripts/build-nqvm.sh --clone later. The operate skill"
+    say "  also builds/pushes on demand; see its SKILL.md."
+  fi
+else
+  say "✓ nqvm already staged"
+fi
+
 # 3. Deploy the skills into the active profile's workspace
 #    - nqrust-microvm          → install (drive the installer TUI)
 #    - nqrust-microvm-operate  → day-2 ops (create VMs etc. via the nqvm CLI)

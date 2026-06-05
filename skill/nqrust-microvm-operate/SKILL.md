@@ -29,14 +29,16 @@ so the CLI talks to it locally — no ports need to be exposed to you.
 ## Setup (once per host, per session)
 
 1. **Connect**: `ssh connect {host, user, auth}` → session id.
-2. **Ensure the binary**: `ssh push` `scripts/ensure-nqvm.sh` → `ssh exec "bash /tmp/ensure-nqvm.sh /tmp/nqvm"`.
-   - exit 0 → reads `NQVM=/tmp/nqvm` (the path to use).
-   - **exit 10** (not installed, no release asset yet) → **push a local build**:
-     `ssh push {local_path:"<repo>/target/x86_64-unknown-linux-musl/release/nqvm", remote_path:"/tmp/nqvm"}`
-     then `ssh exec "chmod +x /tmp/nqvm"`. (Build it with
-     `cargo build --release --target x86_64-unknown-linux-musl -p nqvm-cli` in the NQRust-MicroVM
-     repo if you don't have one. `nqvm` is **not** yet a published release asset.)
-   - From here, call it as `NQVM=/tmp/nqvm` (use the path ensure-nqvm reported).
+2. **Ensure the binary on the target**: `ssh push` `scripts/ensure-nqvm.sh` →
+   `ssh exec "bash /tmp/ensure-nqvm.sh /tmp/nqvm"`.
+   - exit 0 → it printed `NQVM=/tmp/nqvm` (already present or downloaded); use that path.
+   - **exit 10** (not on the host, and `nqvm` isn't a published release asset yet) → **push this
+     skill's bundled binary**: `ssh push {local_path:"<this skill dir>/bin/nqvm",
+     remote_path:"/tmp/nqvm"}` then `ssh exec "chmod +x /tmp/nqvm"`. `bin/nqvm` is staged at
+     install time; the deployed skill normally already has it.
+     - If `bin/nqvm` is missing, build it once: run `scripts/build-nqvm.sh` (it finds the
+       NQRust-MicroVM source — or pass `--clone` — and stages `bin/nqvm`), then push.
+   - Refer to it as `/tmp/nqvm` from here on.
 3. **Authenticate**: `ssh exec "/tmp/nqvm login --api-url http://127.0.0.1:18080 --username <u> --password <p>"`.
    - Default credentials are **`root` / `root`** — use them only if the operator hasn't changed
      them, and **remind the operator to change them**. Pass real creds via tool args; never print them.
