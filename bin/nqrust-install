@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Thin wrapper: drive the nqrust-microvm installer agent without typing the full prompt.
+# Usage:
+#   nqrust-install "on 10.0.0.5, ssh user ubuntu, key ~/.ssh/id_ed25519, production, NAT"
+#   nqrust-install                # no args → interactive REPL
+set -euo pipefail
+if ! command -v rantaiclaw >/dev/null 2>&1; then
+  echo "rantaiclaw not found on PATH. Run install.sh first." >&2
+  exit 1
+fi
+if [ "$#" -eq 0 ]; then
+  exec rantaiclaw repl
+fi
+exec rantaiclaw agent -m "install nqrust-microvm $*"
