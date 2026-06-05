@@ -1,13 +1,17 @@
 # nqrust-microvm-agent
 
-An AI agent that **installs [NQRust-MicroVM](https://github.com/NexusQuantum/NQRust-MicroVM)
-on a remote Linux host from a single prompt** — it SSHes in, **detects the host's specs +
-network and recommends a configuration** (grounded in the official docs at
-[microvm.nexusquantum.id](https://microvm.nexusquantum.id)), then drives the real
-`nqr-installer` TUI over tmux, verifies, and reports.
+An AI agent that **installs and operates [NQRust-MicroVM](https://github.com/NexusQuantum/NQRust-MicroVM)
+on a remote Linux host from natural language.**
+
+- **Install** — it SSHes in, **detects the host's specs + network and recommends a configuration**
+  (grounded in the official docs at [microvm.nexusquantum.id](https://microvm.nexusquantum.id)),
+  drives the real `nqr-installer` TUI over tmux, verifies, and **writes a post-install report**.
+- **Operate** — afterward, ask it to **create a microVM, start/stop/delete it, deploy a container
+  or function, manage images/networks/snapshots** — it drives NQRust-MicroVM's own `nqvm` CLI
+  over SSH against the manager API.
 
 Powered by [RantaiClaw](https://github.com/RantAI-dev/RantAIClaw). This repo ships **only the
-skill** (a playbook + helper scripts); the SSH/tmux capability lives in RantaiClaw itself as the
+skills** (playbooks + helper scripts); the SSH/tmux capability lives in RantaiClaw itself as the
 general-purpose `ssh` and `pty` tools (the `remote-install` feature).
 
 > **New here? Start with the hands-on [TUTORIAL.md](TUTORIAL.md)** — step-by-step from a
@@ -82,14 +86,32 @@ multipass info nqr-target | grep IPv4
 nqrust-install "on <that-ip>, ssh user ubuntu password ..."
 ```
 
+## Operate it (after install)
+
+Once a host is installed, ask the agent to run it — it drives NQRust-MicroVM's own **`nqvm`**
+CLI over SSH (against the manager API):
+
+```bash
+rantaiclaw agent -m "on 10.0.0.5 (ssh ubuntu, key ~/.ssh/id_ed25519): create a microVM \
+  named web, 2 vCPU, 1GB, from the ubuntu-24.04 image, and start it"
+# also: "list my VMs", "stop web", "snapshot web", "deploy nginx as a container", "delete web"
+```
+
+The **`nqrust-microvm-operate`** skill resolves names→IDs, creates/starts/stops/deletes VMs,
+deploys containers & functions, and manages images/networks/snapshots. The CLI isn't a published
+release asset yet, so the agent fetches it by building locally and pushing it to the host (the
+skill handles this); default login is `root`/`root` — change it.
+
 ## What's in here
 
 ```
-skill/nqrust-microvm/SKILL.md      # the agent playbook (screen-map of the installer TUI)
-skill/nqrust-microvm/scripts/      # discover (specs+network) / preflight / resolve-artifact / verify / smoke-test
-skill/nqrust-microvm/RUNBOOK.md    # detailed runbook + troubleshooting
-install.sh                         # deploy into your RantaiClaw
-bin/nqrust-install                 # thin convenience wrapper
+skill/nqrust-microvm/SKILL.md          # install playbook (screen-map of the installer TUI)
+skill/nqrust-microvm/scripts/          # discover / resolve-artifact / verify / smoke-test / report
+skill/nqrust-microvm/RUNBOOK.md        # detailed runbook + troubleshooting
+skill/nqrust-microvm-operate/SKILL.md  # day-2 ops playbook (nqvm CLI command reference + recipes)
+skill/nqrust-microvm-operate/scripts/  # ensure-nqvm (get the CLI onto the host)
+install.sh                             # deploy both skills into your RantaiClaw
+bin/nqrust-install                     # thin convenience wrapper
 ```
 
 ## Troubleshooting

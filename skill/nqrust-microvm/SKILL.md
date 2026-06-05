@@ -1,7 +1,7 @@
 ---
 name: nqrust-microvm
-description: Install & configure NQRust-MicroVM on a remote Linux host by driving the nqr-installer TUI over tmux via SSH. On first run it detects the host's specs + network and recommends a configuration, grounded in the official docs (microvm.nexusquantum.id).
-version: 0.2.0
+description: Install & configure NQRust-MicroVM on a remote Linux host by driving the nqr-installer TUI over tmux via SSH. On first run it detects the host's specs + network and recommends a configuration, grounded in the official docs (microvm.nexusquantum.id); on finish it produces a post-install report.
+version: 0.3.0
 tags: [installer, microvm, firecracker, tmux, ssh, infra]
 ---
 
@@ -138,9 +138,27 @@ Narrate progress to the operator as you go (which screen, which phase).
 ### 6. Verify
 - `ssh push` + `ssh exec "bash /tmp/nqr-verify.sh"` (`scripts/verify.sh`). Parse `VERIFY SUMMARY`.
 - Optionally `scripts/smoke-test.sh` to confirm the agent + base images registered.
-- Report: manager `http://<host>:18080`, UI `http://<host>:3000`, default login (warn to change it), and the verify result.
 
-### 7. Rollback (only on failure)
+### 7. Post-install report (always, on success)
+Produce a written report the operator can keep. Gather ground truth, then compose it.
+- `ssh push` `scripts/report.sh` → `ssh exec "bash /tmp/nqr-report.sh"`; parse the
+  `=== REPORT ===` block (services, versions, `API_HEALTH`/`API_VERSION`, `PORTS_BOUND`,
+  `INSTALL_MODE`, disk/sizes, access URLs). The script needs **no auth** and prints **no secrets**.
+- Write a markdown report and present it (and save it for the operator). Include:
+  - **What was installed** — `INSTALL_MODE`, component versions, NQRust-MicroVM release.
+  - **The configuration you chose** — mode, network mode, Docker/container-runtime, paths, DB
+    (from steps 3–5; this is the rationale the operator agreed to).
+  - **Host** — the step-2 discovery summary (OS/CPU/RAM/disk/KVM/NICs).
+  - **Result & health** — `STATUS`, service states, `API_HEALTH`, ports bound, disk used by
+    `/srv/images` + `/srv/fc/vms`.
+  - **Access** — `URL_MANAGER`, `URL_UI` (if Production), `URL_AGENT`, and the **`root`/`root`
+    default login with a prompt to change it**.
+  - **Next steps** — point at the **`nqrust-microvm-operate`** skill to create VMs etc. via the
+    `nqvm` CLI ("ask me to create a VM").
+- If `STATUS=degraded` (a service down or API unhealthy), say so plainly and surface which check
+  failed rather than declaring success.
+
+### 8. Rollback (only on failure)
 Offer the product's own uninstall: `ssh exec "sudo /tmp/nqr-installer uninstall --non-interactive --force"` (add `--keep-data`/`--keep-database` if the operator wants). Pull `/var/log/nqrust-install/` and the tmux scrollback (`pty screen`) for diagnosis. Then `pty stop` and `ssh disconnect`.
 
 ## Safety

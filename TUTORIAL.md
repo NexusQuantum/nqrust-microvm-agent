@@ -139,9 +139,47 @@ ss -tlnp | grep -E ':(18080|9090|5432)'                      # manager / agent /
 Done → **Manager API** `http://<host>:18080`, **Web UI** `http://<host>:3000` (Production
 mode only). Default login **root/root** — change it.
 
+The agent also writes a **post-install report** (from `scripts/report.sh`): install mode,
+component + firecracker versions, API health, bound ports, disk used by the image/VM stores,
+the config you chose, and the access URLs. Keep it — it's the record of what got installed.
+
 ---
 
-## 7. Troubleshooting (things we actually hit)
+## 7. Operate it — create VMs from a prompt
+
+Installation is half the job; the agent can also **run** the platform. The
+**`nqrust-microvm-operate`** skill drives NQRust-MicroVM's own CLI, **`nqvm`**, over SSH against
+the manager API. Just ask:
+
+```bash
+rantaiclaw agent -m "on <host> (ssh ubuntu, password ...): create a microVM named web, \
+  2 vCPU, 1GB RAM, from the ubuntu-24.04 image; start it and show me its state"
+```
+```
+list my VMs            stop web / start web / pause web
+snapshot web           deploy nginx:latest as a container
+delete web             import an image from dockerhub
+```
+
+How it works (validated end-to-end against a live install):
+- The agent ensures `nqvm` is on the host. **It isn't a published release asset yet**, so the
+  skill builds it locally and pushes it:
+  ```bash
+  # in the NQRust-MicroVM repo, once:
+  cargo build --release --target x86_64-unknown-linux-musl -p nqvm-cli
+  # → target/x86_64-unknown-linux-musl/release/nqvm   (the agent scp's this to the host)
+  ```
+- It logs in (`nqvm login --username root --password root`; **change these**), then resolves your
+  names to UUIDs (`nqvm vm list --output json`) and runs the lifecycle commands.
+- **Create a VM** needs a rootfs + a kernel image — the agent picks them from `nqvm image list`
+  (e.g. `ubuntu-24.04-minimal` + `firecracker-v5.10`), then `nqvm vm create … && nqvm vm start`.
+- **Destructive ops** (`vm delete`, etc.) take `--yes` and the agent confirms with you first.
+
+For a serial console into a VM, the agent uses `pty` to drive `nqvm vm shell <id>`.
+
+---
+
+## 8. Troubleshooting (things we actually hit)
 
 | Symptom | Cause / fix |
 |---|---|
@@ -153,6 +191,10 @@ mode only). Default login **root/root** — change it.
 | `no tmux session` | The agent must `pty start` first; `tmux` is installed on the target by preflight. |
 | Manager `:18080` not up right after install | It registers base images (~30 s) then binds. Wait, re-check `/health`. |
 | Network screen won't switch mode | The Bridged interface panel can hold focus; the modes are **Bridged, NAT, Isolated** (NAT is **Down** from Bridged), and `Tab` switches panels. |
+| **Operate:** `nqvm: command not found` | Not a release asset yet — build `nqvm-cli` and let the agent push it (TUTORIAL §7). |
+| **Operate:** `nqvm` says unauthorized / 401 | Run `nqvm login --username root --password root` first; token caches in `~/.config/nqvm/`. |
+| **Operate:** `vm create` rejected | It needs **both** a rootfs **and** a kernel image id — `nqvm image list --kind rootfs` / `--kind kernel`. |
+| **Operate:** `nqvm --version` errors | There's no `--version` flag; use `nqvm --help` or `nqvm auth status` to probe. |
 
 ---
 
