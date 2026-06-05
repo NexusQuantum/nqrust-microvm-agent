@@ -17,7 +17,10 @@ say "✓ rantaiclaw $(rantaiclaw --version | awk '{print $2}')"
 
 # 2. Are the ssh + pty tools compiled into this binary? (the skill is useless without them)
 BIN="$(command -v rantaiclaw)"
-if ! strings "$BIN" 2>/dev/null | grep -q "Secure SSH transport to a remote host"; then
+# grep -c (not -q) so `strings` drains fully — grep -q closes the pipe early and the
+# resulting SIGPIPE would trip `set -o pipefail` even on a match.
+HAS_TOOLS="$(strings "$BIN" 2>/dev/null | grep -cF "Secure SSH transport to a remote host" || true)"
+if [ "${HAS_TOOLS:-0}" -eq 0 ]; then
   say "✗ This rantaiclaw was built WITHOUT the remote-install tools (ssh + pty)."
   say "  Rebuild with:  cargo build --release --features remote-install"
   say "  (or install a release that bundles them — see README.md)."
@@ -35,7 +38,8 @@ chmod +x "$DEST"/scripts/*.sh 2>/dev/null || true
 say "✓ skill deployed → $DEST"
 
 # 4. Confirm it loads + nudge on LLM key
-if rantaiclaw skills list 2>/dev/null | grep -qi nqrust-microvm; then
+LOADED="$(rantaiclaw skills list 2>/dev/null | grep -ci nqrust-microvm || true)"
+if [ "${LOADED:-0}" -gt 0 ]; then
   say "✓ skill loaded (rantaiclaw skills list)"
 else
   say "! skill copied but not listed — is profile '$PROFILE' the active one?"
