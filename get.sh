@@ -50,8 +50,8 @@ RC="$BDIR/bin/rantaiclaw"
 [ -x "$RC" ] || die "bundle is missing the rantaiclaw binary"
 "$RC" --version >/dev/null 2>&1 || die "the bundled rantaiclaw won't run on this host (arch/libc mismatch)"
 
-# tools present? grep -c (not -q): -q closes the pipe early → SIGPIPE trips pipefail even on a match
-HAS="$(strings "$RC" 2>/dev/null | grep -cF "Secure SSH transport to a remote host" || true)"
+# tools present? grep -a reads the binary directly — no dependency on `strings` (binutils, not always installed)
+HAS="$(grep -acF "Secure SSH transport to a remote host" "$RC" || true)"
 [ "${HAS:-0}" -ge 1 ] || die "the bundled binary lacks the remote-install (ssh+pty) tools"
 
 # install the binary

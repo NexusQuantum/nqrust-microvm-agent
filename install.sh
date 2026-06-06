@@ -17,9 +17,8 @@ say "✓ rantaiclaw $(rantaiclaw --version | awk '{print $2}')"
 
 # 2. Are the ssh + pty tools compiled into this binary? (the skill is useless without them)
 BIN="$(command -v rantaiclaw)"
-# grep -c (not -q) so `strings` drains fully — grep -q closes the pipe early and the
-# resulting SIGPIPE would trip `set -o pipefail` even on a match.
-HAS_TOOLS="$(strings "$BIN" 2>/dev/null | grep -cF "Secure SSH transport to a remote host" || true)"
+# grep -a reads the binary directly — no dependency on `strings` (binutils, not always installed).
+HAS_TOOLS="$(grep -acF "Secure SSH transport to a remote host" "$BIN" || true)"
 if [ "${HAS_TOOLS:-0}" -eq 0 ]; then
   say "✗ This rantaiclaw was built WITHOUT the remote-install tools (ssh + pty)."
   say "  Rebuild with:  cargo build --release --features remote-install"

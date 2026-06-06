@@ -19,8 +19,8 @@ STAGE="$OUT/$NAME"
 [ -x "$RC_BIN" ] || { say "✗ rantaiclaw binary not found/executable: $RC_BIN"; exit 1; }
 
 # the binary MUST carry the ssh/pty tools or the skills can't run.
-# grep -c (not -q): -q closes the pipe on first match → SIGPIPE trips `set -o pipefail` even on a hit.
-HAS_TOOLS="$(strings "$RC_BIN" 2>/dev/null | grep -cF "Secure SSH transport to a remote host" || true)"
+# grep -a reads the binary directly — no dependency on `strings` (binutils, not always installed).
+HAS_TOOLS="$(grep -acF "Secure SSH transport to a remote host" "$RC_BIN" || true)"
 [ "${HAS_TOOLS:-0}" -ge 1 ] \
   || { say "✗ that rantaiclaw was built WITHOUT remote-install (ssh+pty) — rebuild with the feature"; exit 1; }
 

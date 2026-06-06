@@ -15,8 +15,8 @@ fi
 say "✓ rantaiclaw $("$HERE/bin/rantaiclaw" --version | awk '{print $2}') runs on this host"
 
 # 2. confirm the ssh + pty tools are compiled in.
-# grep -c (not -q): -q closes the pipe early → SIGPIPE trips `set -o pipefail` even on a match.
-HAS_TOOLS="$(strings "$HERE/bin/rantaiclaw" 2>/dev/null | grep -cF "Secure SSH transport to a remote host" || true)"
+# grep -a reads the binary directly — no dependency on `strings` (binutils, not always installed).
+HAS_TOOLS="$(grep -acF "Secure SSH transport to a remote host" "$HERE/bin/rantaiclaw" || true)"
 if [ "${HAS_TOOLS:-0}" -ge 1 ]; then
   say "✓ ssh + pty tools present"
 else
