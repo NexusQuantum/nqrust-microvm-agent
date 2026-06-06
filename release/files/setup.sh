@@ -37,10 +37,14 @@ esac
 PROFILE="${RANTAICLAW_PROFILE:-default}"
 CFG="$HOME/.rantaiclaw/profiles/$PROFILE/config.toml"
 if [ ! -f "$CFG" ]; then
-  say ""
-  say "→ No config yet. Launching 'rantaiclaw onboard' to set your LLM provider + API key…"
-  say "  (or Ctrl-C and set api_key/default_provider in $CFG yourself)"
-  "$DEST/rantaiclaw" onboard || say "! onboard skipped — configure a provider/key before running"
+  if [ -n "${NONINTERACTIVE:-}" ]; then
+    say "→ No LLM provider configured yet. When ready, run:  rantaiclaw onboard"
+  else
+    say ""
+    say "→ No config yet. Launching 'rantaiclaw onboard' to set your LLM provider + API key…"
+    say "  (or Ctrl-C and set api_key/default_provider in $CFG yourself)"
+    "$DEST/rantaiclaw" onboard </dev/tty || say "! onboard skipped — configure a provider/key before running"
+  fi
 else
   say "✓ existing config: $CFG (leaving it as-is)"
 fi
