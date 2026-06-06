@@ -2,3 +2,6 @@
 skill/nqrust-microvm-operate/bin/nqvm
 # Optional shallow clone created by build-nqvm.sh --clone
 skill/nqrust-microvm-operate/.nqrust-src/
+
+# release build outputs
+dist/
