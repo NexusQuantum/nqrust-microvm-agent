@@ -60,6 +60,53 @@ cd nqrust-microvm-agent
 `install.sh` refuses to proceed if your `rantaiclaw` lacks the `ssh`/`pty` tools, so you can't
 end up with a skill that silently can't run.
 
+## Tutorial — install your first host
+
+**1. Set up the agent** (once, on your laptop):
+```bash
+curl -fsSL https://raw.githubusercontent.com/NexusQuantum/nqrust-microvm-agent/master/get.sh | bash
+rantaiclaw onboard      # pick your LLM provider + paste an API key
+```
+
+**2. Have a target ready** — a Linux box the agent will SSH into: Ubuntu/Debian **x86_64 with KVM**
+(`/dev/kvm`; nested virt if it's itself a VM), **≥ 30 GB free disk**, ≥ 4 GB RAM, reachable over
+SSH with **sudo**. (No KVM → can't run Firecracker; use bare metal or a nested-virt VM.)
+
+**3. Tell the agent how to reach it** — it needs **host + user + one SSH credential**, plus sudo:
+
+| What you give | Example phrasing |
+|---|---|
+| Password (used for SSH + sudo) | `ssh user ubuntu password 's3cret'` |
+| SSH key + passwordless sudo | `ssh user ubuntu, key ~/.ssh/id_ed25519` |
+| SSH key + a separate sudo password | `ssh user ubuntu, key ~/.ssh/id_ed25519, sudo password 's3cret'` |
+| ssh-agent (nothing secret typed) | `ssh user ubuntu, use my ssh agent` |
+
+Credentials pass only through the tool call — never written to disk or echoed back. Logging in as
+`root`, or a user with **passwordless sudo**, is smoothest.
+
+**4. Run it:**
+```bash
+rantaiclaw chat
+```
+Then paste (give it all the settings up front):
+```
+Install nqrust-microvm on 10.0.0.5, ssh user ubuntu, key ~/.ssh/id_ed25519.
+Minimal mode, NAT networking. Discover the host first, then drive the installer to
+completion ONE KEY AT A TIME, verify, and report. Work autonomously; I'll reply "continue".
+```
+It connects → profiles the host and recommends a config → drives the real installer → verifies →
+reports. `ssh`/`pty` are **always-ask**, so approve each step with **Y**; when it pauses, reply
+**`continue`**. Watch live with `tmux attach -t nqr` on the target.
+
+Done → **Manager API** `http://10.0.0.5:18080`, **Web UI** `http://10.0.0.5:3000` (Production).
+Default login **root/root — change it.**
+
+**5. Operate it** — same chat, plain language:
+```
+on 10.0.0.5 create a microVM named web, 2 vCPU 1GB from the ubuntu-24.04 image, start it
+list my VMs   ·   stop web   ·   snapshot web   ·   delete web
+```
+
 ## Getting a RantaiClaw with the tools
 
 The `ssh` + `pty` tools are general RantaiClaw capabilities behind the `remote-install` feature.
