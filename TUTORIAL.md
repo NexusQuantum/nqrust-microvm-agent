@@ -104,6 +104,24 @@ the install verified. If it ever shows a model tool-id error, type **`/retry`**.
 > Give it **all** settings up front, or it will stop to ask — the skill gathers config
 > conversationally by default.
 
+#### Make it hands-off (raise two budgets)
+A TUI drive is *many* tool calls, and two conservative defaults make the agent stop and
+wait part-way through. Bump them in `~/.rantaiclaw/profiles/<profile>/config.toml` for the
+install (restart `rantaiclaw chat` after editing):
+```toml
+[agent]
+max_tool_iterations = 500       # default 25 — the agent ends its turn after this many tool
+                                # calls per message ("type /continue to extend"). A full TUI
+                                # drive needs far more, so it pauses constantly at 25.
+
+[autonomy]
+max_actions_per_hour = 100000   # default 20 — on rantaiclaw < 0.6.63 every pty keystroke
+                                # counted; 0.6.63+ only counts session starts, but raising
+                                # this is harmless insurance.
+```
+With both raised (and rantaiclaw ≥ 0.6.63), the agent drives the whole install in **one
+turn** — no repeated "continue".
+
 ### Approval prompts
 `ssh`/`pty` are **always-ask** by default (a safety gate) — you approve each privileged
 step with **Y**. For a hands-off run you can set `[autonomy] level = "full"` (no
